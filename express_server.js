@@ -24,21 +24,21 @@ app.post("/urls", (req, res) => {
  // console.log(urlDatabase)
  // console.log(longURL)
  // console.log(shortURL)
- res.redirect(`urls/${shortURL}`);        
+ res.redirect(`urls/`);        
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
- console.log("Trying to delete", req.params.shortURL)
+ // console.log("Trying to delete", req.params.shortURL)
 delete urlDatabase[req.params.shortURL]
 res.redirect("/urls")
 });
 
-app.get("/", (req, res) => {
- res.send("Hello!");
-});
-
-app.get("/urls.json", (req, res) => {
- res.json(urlDatabase);
+app.post("/urls/:id", (req, res) => {
+ console.log(req)
+ let id = req.params.id
+ let longURL = req.body.longURL
+ urlDatabase[id] = longURL
+ res.redirect(`/urls`);
 });
 
 app.get("/urls", (req, res) => {
@@ -62,10 +62,6 @@ app.get("/urls/:shortURL", (req, res) => {
   longURL: urlDatabase[req.params.shortURL] 
  };
  res.render("urls_show", templateVars);
-});
-
-app.get("/hello", (req, res) => {
- res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 app.listen(PORT, () => {
