@@ -71,6 +71,13 @@ app.get("/register", (req,res) => {
  res.render("register", templateVars)
 })
 
+app.get("/login", (req,res) => { 
+ const templateVars = { 
+  user_id: req.cookies.user_id
+ };
+ res.render("login", templateVars)
+})
+
 
 // ---------- POST -------------
 
@@ -95,27 +102,51 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
- res.cookie('username', req.body.username);
+ res.cookie('user_id', req.cookies.user_id);
  res.redirect(`/urls`);
 });
 
 app.post("/logout", (req, res) => {
- res.clearCookie('username');
+ res.clearCookie('user_id');
  res.redirect(`/urls`);
 });
 
 app.post("/register", (req, res) => {
  const RandomUserID = generateRandomString();
- users[RandomUserID] = {
-   id: RandomUserID,
-   email: req.body.email,
-   password: req.body.password
- }
- res.cookie('user_id', users[RandomUserID]); 
 
+ // checking if there email and password are empty strings
+ if (req.body.email === "" || req.body.password === "") {
+  return res.send(400)
+ } 
+ // if the user exists, send a 400 status code 
+ const duplicateUser = findUser(req.body.email, users)
+ if (duplicateUser) {
+  return res.status(400).send("USER ALREADY EXISTS")
+ } 
+
+ users[RandomUserID] = {
+  id: RandomUserID,
+  email: req.body.email,
+  password: req.body.password
+}
+
+ res.cookie('user_id', users[RandomUserID]); 
  res.redirect("/urls");
 });
 
+// --------
 app.listen(PORT, () => {
  console.log(`Example app listening on port ${PORT}!`);
 });
+
+// ---- HELPER FUNCTIONS
+
+const findUser = function (email, users) {
+ for (const user in users) {
+  if (email === users[user].email) {
+   return users[user];
+  }
+ }
+ return undefined
+};
+
