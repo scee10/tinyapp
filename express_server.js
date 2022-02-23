@@ -101,14 +101,32 @@ app.post("/urls/:id", (req, res) => {
  res.redirect(`/urls`);
 });
 
-app.post("/login", (req, res) => {
- res.cookie('user_id', req.cookies.user_id);
- res.redirect(`/urls`);
+app.post("/login", (req, res) => { // WORKING ON THIS ONE RIGHT NOW
+ const inputEmail = req.body.email
+ const inputPassword = req.body.password
+
+ console.log(users)
+ 
+ for (const user in users) {
+  //check if the input email does not match the email in our users object
+  if (inputEmail !== users[user].email) {
+   return res.status(403).send("USER DOESN'T EXIST");
+   //check if the input email matches the email in our users object
+  } else if (inputEmail === users[user].email) {
+   // then now we check if the input password is equal to the password in the users object
+   if(inputPassword !== users[user].password) {
+    return res.status(403).send("PASSWORD DOES NOT MATCH");
+   } else {
+    res.cookie('user_id', users[user]);
+    res.redirect(`/urls`);
+   }
+  }
+ };
 });
 
 app.post("/logout", (req, res) => {
  res.clearCookie('user_id');
- res.redirect(`/urls`);
+ res.redirect(`/login`);
 });
 
 app.post("/register", (req, res) => {
@@ -131,6 +149,7 @@ app.post("/register", (req, res) => {
 }
 
  res.cookie('user_id', users[RandomUserID]); 
+ console.log(users)
  res.redirect("/urls");
 });
 
