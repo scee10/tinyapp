@@ -22,5 +22,9 @@ describe('getUserByEmail', function() {
     assert.strictEqual(user, expectedUserID);
   });
 
-
+  it('should return undefined with an invalid email', function() {
+   const user = getUserByEmail("g@gmail.com", testUsers)
+   const expectedUserID = undefined;
+   assert.strictEqual(user, expectedUserID);
+ });
 });
