@@ -46,8 +46,6 @@ function generateRandomString() {
 const urlsForUser = function (id, urlDatabase) {
  const userURL = {}
  for (key in urlDatabase) {
-  // console.log("This is database userID", urlDatabase[key].userID)
-  // console.log("This is database URL", urlDatabase[key].longURL)
  if (id === urlDatabase[key].userID) {
    userURL[key] = urlDatabase[key];
   }
@@ -58,36 +56,34 @@ const urlsForUser = function (id, urlDatabase) {
 
 // ------- GET ----------
 
-app.get("/", (req, res) => { // CHANGED IN URLS_INDEX
+// "home page"
+app.get("/", (req, res) => { 
   if(!req.cookies.user_id) {
    return res.redirect("/login")
   } 
   res.redirect("/urls")
 });
 
-app.get("/urls", (req, res) => { // CHANGED IN URLS_INDEX
-
+// home page that renders the "urls_index page" -- shows all of your URLS 
+app.get("/urls", (req, res) => { 
+ // if you're not logged in/registered, will throw error msg 
   if(!req.cookies.user_id) {
    return res.send("Uh-oh! Please log in or register!");
   };
 
   const filteredURLS = urlsForUser(req.cookies.user_id.id, urlDatabase)
 
-  console.log("URL DATABASE:", urlDatabase)
-  console.log("filteredURLS", filteredURLS)
-
   const templateVars = { 
+   // will ONLY display URLS that belong to the user 
    urls: filteredURLS, 
    user_id: req.cookies.user_id
   };
 
-// console.log(urlsForUser(req.cookies.user_id.id, urlDatabase));
-
   res.render("urls_index", templateVars);
-
 });
 
-app.get("/u/:shortURL", (req, res) => { // CHANGED
+// page will bring you to the appropriate website 
+app.get("/u/:shortURL", (req, res) => { 
   if (!urlDatabase[req.params.shortURL]) {
    res.send("Uh-oh! URL no longer exist!")
   } 
@@ -95,11 +91,13 @@ app.get("/u/:shortURL", (req, res) => { // CHANGED
   res.redirect(longURL);
 });
 
+// this allows you to create a new URL and renders the urls_new page 
 app.get("/urls/new", (req, res) => { 
   const templateVars = { 
    user_id: req.cookies.user_id
   };
 
+  // checking if you're logged in or not
   if (req.cookies.user_id) {
    return res.render("urls_new", templateVars);
   } else {
@@ -108,7 +106,8 @@ app.get("/urls/new", (req, res) => {
 
 });
 
-app.get("/urls/:shortURL", (req, res) => { //CHANGED LONGURL
+
+app.get("/urls/:shortURL", (req, res) => { 
  if (!req.cookies.user_id) {
   return res.status(400).send("Uh-oh! URL does not exist!")
  }
@@ -129,6 +128,7 @@ app.get("/urls/:shortURL", (req, res) => { //CHANGED LONGURL
   res.render("urls_show", templateVars);
 
 });
+
 
 app.get("/register", (req,res) => { 
 
@@ -179,16 +179,13 @@ app.post("/urls", (req, res) => { // CHANGED
 });
 
 
-app.post("/urls/:shortURL/delete", (req, res) => {
-
-  // 162 - 172 should be copied and pasted here 
-  // 
+app.post("/urls/:shortURL/delete", (req, res) => { // ** MAY STILL NEED TO TEST THIS
  delete urlDatabase[req.params.shortURL];
  res.redirect("/urls");
  });
 
  // for editing the URL
- app.post("/urls/:id", (req, res) => { // CHANGED ********
+ app.post("/urls/:id", (req, res) => { 
 
   //if cookies doesnt exist, throw error
   if (!req.cookies.user_id) {
@@ -212,9 +209,6 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 
 app.post("/login", (req, res) => { 
-
- // NEED TO TAKE A LOOK AT THIS AGAIN 
-
  const inputEmail = req.body.email
  const inputPassword = req.body.password
   
@@ -227,7 +221,8 @@ app.post("/login", (req, res) => {
     currentUser = users[user];
     break;
    } 
-  }
+  };
+  
   if (result) {
      res.cookie('user_id', currentUser);
      res.redirect(`/urls`);
