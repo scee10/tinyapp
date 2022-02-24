@@ -1,11 +1,12 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
+const bodyParser = require("body-parser");
+
 app.set("view engine", "ejs");
 app.use(cookieParser())
-
-const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 
 
@@ -22,16 +23,7 @@ const urlDatabase = {
 };
 
 const users = { 
- "userRandomID": {
-   id: "userRandomID", 
-   email: "user@example.com", 
-   password: "123"
- },
-"user2RandomID": {
-   id: "user2RandomID", 
-   email: "user2@example.com", 
-   password: "456"
- }
+
 };
 
 
@@ -216,13 +208,15 @@ app.post("/login", (req, res) => {
   let currentUser = ""
 
   for (const user in users) {
-   if (inputEmail === users[user].email && inputPassword === users[user].password) {
+   
+   // if (inputEmail === users[user].email && inputPassword === users[user].password) {
+   if (inputEmail === users[user].email && bcrypt.compareSync(inputPassword, users[user].password)) {
     result = true;
     currentUser = users[user];
     break;
    } 
   };
-  
+
   if (result) {
      res.cookie('user_id', currentUser);
      res.redirect(`/urls`);
@@ -239,6 +233,12 @@ app.post("/logout", (req, res) => {
 
 
 app.post("/register", (req, res) => {
+  // let salt = bcrypt.genSaltSync(10);
+  // let hash = bcrypt.hashSync("bacon", salt);
+
+  // const checkingPassword = bcrypt.compareSync("bacon", hash); // true
+
+  // console.log(checkingPassword);
 
   const RandomUserID = generateRandomString();
 
@@ -252,11 +252,18 @@ app.post("/register", (req, res) => {
    return res.status(400).send("Uh-oh! User already exists!")
   } 
 
-  users[RandomUserID] = {
-   id: RandomUserID,
-   email: req.body.email,
-   password: req.body.password
- }
+  // hashing password 
+  
+
+ let plainUserPW = req.body.password
+ let salt = bcrypt.genSaltSync(10);
+ let hashedPassword = bcrypt.hashSync(plainUserPW, salt);
+
+ users[RandomUserID] = {
+  id: RandomUserID,
+  email: req.body.email,
+  password: hashedPassword
+}
 
   res.cookie('user_id', users[RandomUserID]); 
   res.redirect("/urls");
