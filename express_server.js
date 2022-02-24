@@ -17,7 +17,7 @@ const urlDatabase = {
  },
  i3BoGr: {
      longURL: "https://www.google.ca",
-     userID: "aJ48lW"
+     userID: "userRandomID"
  }
 };
 
@@ -52,7 +52,6 @@ const urlsForUser = function (id, urlDatabase) {
    userURL[key] = urlDatabase[key];
   }
  }
- console.log(userURL)
  return userURL;
 };
 
@@ -73,6 +72,9 @@ app.get("/urls", (req, res) => { // CHANGED IN URLS_INDEX
   };
 
   const filteredURLS = urlsForUser(req.cookies.user_id.id, urlDatabase)
+
+  console.log("URL DATABASE:", urlDatabase)
+  console.log("filteredURLS", filteredURLS)
 
   const templateVars = { 
    urls: filteredURLS, 
@@ -107,11 +109,15 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => { //CHANGED LONGURL
+ if (!req.cookies.user_id) {
+  return res.status(400).send("Uh-oh! URL does not exist!")
+ }
  const filteredURLS = urlsForUser(req.cookies.user_id.id, urlDatabase);
 
   // if for the specific id in filteredURLS does not exist, throw error
+
   if (!filteredURLS[req.params.shortURL]) {
-   return res.status(400).send("Uh-oh! URL does not exist!")
+   return res.status(400).send("Uh-oh! URL does not exist!!!")
   };
 
   const templateVars = { 
@@ -119,18 +125,30 @@ app.get("/urls/:shortURL", (req, res) => { //CHANGED LONGURL
    longURL: urlDatabase[req.params.shortURL].longURL,
    user_id: req.cookies.user_id
   };
-  console.log(templateVars)
+
   res.render("urls_show", templateVars);
+
 });
 
 app.get("/register", (req,res) => { 
+
+  if (req.cookies.user_id) {
+   res.redirect("/urls")
+  };
+
   const templateVars = { 
    user_id: req.cookies.user_id
   };
+
   res.render("register", templateVars)
 })
 
 app.get("/login", (req,res) => { 
+
+  if(req.cookies.user_id) {
+   res.redirect ("/urls")
+  };
+
   const templateVars = { 
    user_id: req.cookies.user_id
   };
@@ -158,7 +176,6 @@ app.post("/urls", (req, res) => { // CHANGED
 
   };   
 
-  console.log("THIS IS THE DATABASE:", urlDatabase)
 });
 
 
@@ -173,25 +190,21 @@ app.post("/urls/:shortURL/delete", (req, res) => {
  // for editing the URL
  app.post("/urls/:id", (req, res) => { // CHANGED ********
 
-  // NEED TO FIX: this is still sending me to the edit page when it should send me an error msg
-  
   //if cookies doesnt exist, throw error
   if (!req.cookies.user_id) {
    res.status(400).send("Uh-oh! Please log in.")
   };
 
-  const filteredURLS = urlsForUser(req.cookies.user_id.id, urlDatabase);
-
+  const filteredURLS = urlsForUser(req.cookies.user_id.id, urlDatabase); 
+  
   // if for the specific id in filteredURLS does not exist, throw error
-  if (!filteredURLS[req.params.shortURL]) {
+  if (!filteredURLS[req.params.id]) {
    return res.status(400).send("Uh-oh! URL does not exist.")
   };
 
- // -----
-
   let id = req.params.id;
   let longURL = req.body.longURL;
-  const userID = req.cookies.user_id
+  const userID = req.cookies.user_id.id
   urlDatabase[id] = {longURL, userID};
 
   res.redirect(`/urls`);
@@ -204,8 +217,6 @@ app.post("/login", (req, res) => {
 
  const inputEmail = req.body.email
  const inputPassword = req.body.password
-
-  console.log(users)
   
   let result = false;
   let currentUser = ""
@@ -234,8 +245,6 @@ app.post("/logout", (req, res) => {
 
 app.post("/register", (req, res) => {
 
-  // CHECK THIS TOO (DATABASE ISSUE?)
-
   const RandomUserID = generateRandomString();
 
   // checking if the email and password are empty strings
@@ -255,7 +264,6 @@ app.post("/register", (req, res) => {
  }
 
   res.cookie('user_id', users[RandomUserID]); 
-  console.log(users)
   res.redirect("/urls");
 });
 
