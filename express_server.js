@@ -48,11 +48,17 @@ app.get("/u/:shortURL", (req, res) => {
  res.redirect(longURL);
 });
 
-app.get("/urls/new", (req, res) => { 
+app.get("/urls/new", (req, res) => { // WORKING ON THIS ONE NOW 
  const templateVars = { 
   user_id: req.cookies.user_id
  };
- res.render("urls_new", templateVars);
+
+ if (req.cookies.user_id) {
+  return res.render("urls_new", templateVars);
+ } else {
+  res.redirect("/login");
+ };
+
 });
 
 app.get("/urls/:shortURL", (req, res) => { 
@@ -82,10 +88,14 @@ app.get("/login", (req,res) => {
 // ---------- POST -------------
 
 app.post("/urls", (req, res) => {
+ if (!req.cookies.user_id) {
+  res.send("Error: You are not logged in")
+ } else {
  let shortURL = generateRandomString();
  let longURL = req.body.longURL;
  urlDatabase[shortURL] = longURL;
- res.redirect("urls/");        
+ res.redirect("urls/");    
+ };   
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
@@ -101,7 +111,7 @@ app.post("/urls/:id", (req, res) => {
  res.redirect(`/urls`);
 });
 
-app.post("/login", (req, res) => { // WORKING ON THIS ONE RIGHT NOW
+app.post("/login", (req, res) => { 
  const inputEmail = req.body.email
  const inputPassword = req.body.password
 
