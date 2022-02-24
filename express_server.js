@@ -49,11 +49,11 @@ app.get("/", (req, res) => {
 // home page that renders the "urls_index page" -- shows all of your URLS 
 app.get("/urls", (req, res) => { 
  // if you're not logged in/registered, will throw error msg 
-  if(!req.session.user_id) {
-   return res.send("Uh-oh! Please log in or register!");
+  let filteredURLS = {};
+  
+  if(req.session.user_id) {
+   filteredURLS = urlsForUser(req.session.user_id.id, urlDatabase)
   };
-
-  const filteredURLS = urlsForUser(req.session.user_id.id, urlDatabase)
 
   const templateVars = { 
    // will ONLY display URLS that belong to the user 
@@ -217,7 +217,7 @@ app.post("/login", (req, res) => {
 
 app.post("/logout", (req, res) => {
   req.session = null;
-  res.redirect(`/login`);
+  res.redirect(`/urls`);
 });
 
 
