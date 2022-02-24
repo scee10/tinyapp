@@ -39,14 +39,42 @@ function generateRandomString() {
  return r;
 };
 
+// need to compare the LOGGED IN users ID with the userID from database
+const urlsForUser = function (id, urlDatabase) {
+ const userURL = {}
+ for (key in urlDatabase) {
+  // console.log("This is database userID", urlDatabase[key].userID)
+  // console.log("This is database URL", urlDatabase[key].longURL)
+ if (id === urlDatabase[key].userID) {
+   userURL[key] = urlDatabase[key];
+  }
+ }
+ console.log(userURL)
+ return userURL;
+};
+
+
 // ------- GET ----------
 
 app.get("/urls", (req, res) => { // CHANGED IN URLS_INDEX
+
+ const filteredURLS = urlsForUser(req.cookies.user_id.id, urlDatabase)
+
  const templateVars = { 
-  urls: urlDatabase, 
+  urls: filteredURLS, 
   user_id: req.cookies.user_id
  };
+
+console.log(urlsForUser(req.cookies.user_id.id, urlDatabase));
+
+// console.log(urlDatabase)
+// console.log(req.cookies.user_id.id)
+
+ if(!req.cookies.user_id) {
+  res.send("Please log in or register");
+ } else {
  res.render("urls_index", templateVars);
+ }
 });
 
 app.get("/u/:shortURL", (req, res) => { // CHANGED
@@ -119,38 +147,45 @@ app.post("/urls", (req, res) => { // CHANGED
  console.log("THIS IS THE DATABASE:", urlDatabase)
 });
 
-// app.post("/urls", (req, res) => { // CHANGE
-//  if (!req.cookies.user_id) {
-//   res.send("Error: You are not logged in")
-
-//  } else {
-
-//  let shortURL = generateRandomString();
- 
-//  let longURL = req.body.longURL;
-//  urlDatabase[shortURL] = longURL;
-//  res.redirect("urls/");    
-
-//  };   
-// });
-
 app.post("/urls/:shortURL/delete", (req, res) => {
+
+ // 162 - 172 should be copied and pasted here 
+ // 
 delete urlDatabase[req.params.shortURL];
 res.redirect("/urls");
 });
 
 // for editing the URL
-app.post("/urls/:id", (req, res) => { // CHANGED
- console.log(req)
+app.post("/urls/:id", (req, res) => { // CHANGED ********
+
+ // NEED TO FIX: this is still sending me to the edit page when it should send me an error msg
+ 
+ //if cookies doesnt exist, throw error
+ if (!req.cookies.user_id) {
+  res.status(400).send("Please log in")
+ };
+
+ const filteredURLS = urlsForUser(req.cookies.user_id.id, urlDatabase);
+
+ // if for the specific id in filteredURLS does not exist, throw error
+ if (!filteredURLS[id]) {
+  res.status(400).send("URL does not exist")
+ };
+
+// -----
+
  let id = req.params.id;
  let longURL = req.body.longURL;
  const userID = req.cookies.user_id
  urlDatabase[id] = {longURL, userID};
- console.log(urlDatabase)
+
  res.redirect(`/urls`);
 });
 
 app.post("/login", (req, res) => { 
+
+ // NEED TO TAKE A LOOK AT THIS AGAIN 
+
  const inputEmail = req.body.email
  const inputPassword = req.body.password
 
@@ -179,6 +214,9 @@ app.post("/logout", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
+
+ // CHECK THIS TOO (DATABASE ISSUE?)
+
  const RandomUserID = generateRandomString();
 
  // checking if there email and password are empty strings
