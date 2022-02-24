@@ -1,3 +1,4 @@
+// ------------------- DEPENDENCIES -------------------------
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
@@ -17,11 +18,7 @@ app.use(cookieSession({
  keys: ['key1', 'key2', 'key3'],
 }));
 
-// replace res.clearCookies -> req.session = null
-// replace req.cookies.user_id -> req.session.user_id
-// replace res.cookies(name, value) -> req.session.user_id = value
-
-// ------ DATABASES --------
+// ------------------- DATABASES -------------------------
 const urlDatabase = {
  b6UTxQ: {
      longURL: "https://www.tsn.ca",
@@ -36,7 +33,7 @@ const urlDatabase = {
 const users = { 
 };
 
-// ------- GET ----------
+// ------------------- GET -------------------------
 
 // "home page"
 app.get("/", (req, res) => { 
@@ -46,11 +43,10 @@ app.get("/", (req, res) => {
   res.redirect("/urls")
 });
 
-// home page that renders the "urls_index page" -- shows all of your URLS 
+// page that shows all urls that belong to specific user
 app.get("/urls", (req, res) => { 
- // if you're not logged in/registered, will throw error msg 
   let filteredURLS = {};
-  
+
   if(req.session.user_id) {
    filteredURLS = urlsForUser(req.session.user_id.id, urlDatabase)
   };
@@ -64,7 +60,8 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
-// page will bring you to the appropriate website 
+
+// page will bring you to the appropriate website with the short url
 app.get("/u/:shortURL", (req, res) => { 
   if (!urlDatabase[req.params.shortURL]) {
    res.send("Uh-oh! URL no longer exist!")
@@ -72,6 +69,7 @@ app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
+
 
 // this allows you to create a new URL and renders the urls_new page 
 app.get("/urls/new", (req, res) => { 
@@ -93,10 +91,10 @@ app.get("/urls/:shortURL", (req, res) => {
  if (!req.session.user_id) {
   return res.status(400).send("Uh-oh! URL does not exist!")
  }
+
  const filteredURLS = urlsForUser(req.session.user_id.id, urlDatabase);
 
   // if for the specific id in filteredURLS does not exist, throw error
-
   if (!filteredURLS[req.params.shortURL]) {
    return res.status(400).send("Uh-oh! URL does not exist!!!")
   };
@@ -108,12 +106,11 @@ app.get("/urls/:shortURL", (req, res) => {
   };
 
   res.render("urls_show", templateVars);
-
 });
 
 
+// register page
 app.get("/register", (req,res) => { 
-
   if (req.session.user_id) {
    res.redirect("/urls")
   };
@@ -127,7 +124,6 @@ app.get("/register", (req,res) => {
 
 
 app.get("/login", (req,res) => { 
-
   if(req.session.user_id) {
    res.redirect ("/urls")
   };
@@ -139,7 +135,7 @@ app.get("/login", (req,res) => {
 })
 
 
-// ---------- POST -------------
+// ------------------- POST -------------------------
 
 // for creating a new URL
 app.post("/urls", (req, res) => { // CHANGED
@@ -158,18 +154,18 @@ app.post("/urls", (req, res) => { // CHANGED
   res.redirect("urls/");    
 
   };   
-
 });
 
 
-app.post("/urls/:shortURL/delete", (req, res) => { // ** MAY STILL NEED TO TEST THIS
+// deleting url
+app.post("/urls/:shortURL/delete", (req, res) => { 
  delete urlDatabase[req.params.shortURL];
  res.redirect("/urls");
  });
 
+
  // for editing the URL
  app.post("/urls/:id", (req, res) => { 
-
   //if cookies doesnt exist, throw error
   if (!req.session.user_id) {
    res.status(400).send("Uh-oh! Please log in.")
@@ -191,13 +187,14 @@ app.post("/urls/:shortURL/delete", (req, res) => { // ** MAY STILL NEED TO TEST 
 });
 
 
+// for logging in
 app.post("/login", (req, res) => { 
  const inputEmail = req.body.email
  const inputPassword = req.body.password
   
   let result = false;
   let currentUser = ""
-
+// looping through users to check if email and passwords both match
   for (const user in users) {
    if (inputEmail === users[user].email && bcrypt.compareSync(inputPassword, users[user].password)) {
     result = true;
@@ -205,7 +202,8 @@ app.post("/login", (req, res) => {
     break;
    } 
   };
-
+  //if truthy value, proceed to set cookie and redirect to urls page
+  //if falsy, throw error
   if (result) {
      req.session.user_id = currentUser;
      res.redirect(`/urls`);
@@ -215,12 +213,14 @@ app.post("/login", (req, res) => {
 });
 
 
+// for logging out
 app.post("/logout", (req, res) => {
   req.session = null;
   res.redirect(`/urls`);
 });
 
 
+// for registering
 app.post("/register", (req, res) => {
   const RandomUserID = generateRandomString();
 
@@ -233,9 +233,7 @@ app.post("/register", (req, res) => {
   if (duplicateUser) {
    return res.status(400).send("Uh-oh! User already exists!")
   } 
-
   // hashing password 
-
  let plainUserPW = req.body.password
  let salt = bcrypt.genSaltSync(10);
  let hashedPassword = bcrypt.hashSync(plainUserPW, salt);
