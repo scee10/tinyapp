@@ -5,6 +5,9 @@ const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 const bodyParser = require("body-parser");
 const cookieSession = require('cookie-session');
+const { generateRandomString } = require('./helpers')
+const { urlsForUser } = require('./helpers')
+const { getUserByEmail } = require('./helpers')
 
 app.set("view engine", "ejs");
 app.use(cookieParser());
@@ -31,27 +34,7 @@ const urlDatabase = {
 };
 
 const users = { 
-
 };
-
-// -------- HELPER FUNCTIONS -------
-function generateRandomString() {
- let r = (Math.random() + 1).toString(36).substring(6);
- return r;
-};
-
-
-// need to compare the LOGGED IN users ID with the userID from database
-const urlsForUser = function (id, urlDatabase) {
- const userURL = {}
- for (key in urlDatabase) {
- if (id === urlDatabase[key].userID) {
-   userURL[key] = urlDatabase[key];
-  }
- }
- return userURL;
-};
-
 
 // ------- GET ----------
 
@@ -142,6 +125,7 @@ app.get("/register", (req,res) => {
   res.render("register", templateVars)
 })
 
+
 app.get("/login", (req,res) => { 
 
   if(req.session.user_id) {
@@ -215,8 +199,6 @@ app.post("/login", (req, res) => {
   let currentUser = ""
 
   for (const user in users) {
-   
-   // if (inputEmail === users[user].email && inputPassword === users[user].password) {
    if (inputEmail === users[user].email && bcrypt.compareSync(inputPassword, users[user].password)) {
     result = true;
     currentUser = users[user];
@@ -240,13 +222,6 @@ app.post("/logout", (req, res) => {
 
 
 app.post("/register", (req, res) => {
-  // let salt = bcrypt.genSaltSync(10);
-  // let hash = bcrypt.hashSync("bacon", salt);
-
-  // const checkingPassword = bcrypt.compareSync("bacon", hash); // true
-
-  // console.log(checkingPassword);
-
   const RandomUserID = generateRandomString();
 
   // checking if the email and password are empty strings
@@ -254,13 +229,12 @@ app.post("/register", (req, res) => {
    return res.status(400).send("Uh-oh! Please enter a valid email/password!")
   } 
   // if the user exists, send a 400 status code 
-  const duplicateUser = findUser(req.body.email, users)
+  const duplicateUser = getUserByEmail(req.body.email, users)
   if (duplicateUser) {
    return res.status(400).send("Uh-oh! User already exists!")
   } 
 
   // hashing password 
-  
 
  let plainUserPW = req.body.password
  let salt = bcrypt.genSaltSync(10);
@@ -283,14 +257,9 @@ app.listen(PORT, () => {
 });
 
 
-// ---- HELPER FUNCTIONS
 
-const findUser = function (email, users) {
- for (const user in users) {
-  if (email === users[user].email) {
-   return users[user];
-  }
- }
- return undefined
-};
+
+
+
+
 
