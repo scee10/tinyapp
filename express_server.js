@@ -4,11 +4,19 @@ const PORT = 8080; // default port 8080
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 const bodyParser = require("body-parser");
+const cookieSession = require('cookie-session');
 
 app.set("view engine", "ejs");
-app.use(cookieParser())
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieSession({
+ name: 'session',
+ keys: ['key1', 'key2', 'key3'],
+}));
 
+// replace res.clearCookies -> req.session = null
+// replace req.cookies.user_id -> req.session.user_id
+// replace res.cookies(name, value) -> req.session.user_id = value
 
 // ------ DATABASES --------
 const urlDatabase = {
@@ -25,7 +33,6 @@ const urlDatabase = {
 const users = { 
 
 };
-
 
 // -------- HELPER FUNCTIONS -------
 function generateRandomString() {
@@ -50,7 +57,7 @@ const urlsForUser = function (id, urlDatabase) {
 
 // "home page"
 app.get("/", (req, res) => { 
-  if(!req.cookies.user_id) {
+  if(!req.session.user_id) {
    return res.redirect("/login")
   } 
   res.redirect("/urls")
@@ -59,16 +66,16 @@ app.get("/", (req, res) => {
 // home page that renders the "urls_index page" -- shows all of your URLS 
 app.get("/urls", (req, res) => { 
  // if you're not logged in/registered, will throw error msg 
-  if(!req.cookies.user_id) {
+  if(!req.session.user_id) {
    return res.send("Uh-oh! Please log in or register!");
   };
 
-  const filteredURLS = urlsForUser(req.cookies.user_id.id, urlDatabase)
+  const filteredURLS = urlsForUser(req.session.user_id.id, urlDatabase)
 
   const templateVars = { 
    // will ONLY display URLS that belong to the user 
    urls: filteredURLS, 
-   user_id: req.cookies.user_id
+   user_id: req.session.user_id
   };
 
   res.render("urls_index", templateVars);
@@ -86,11 +93,11 @@ app.get("/u/:shortURL", (req, res) => {
 // this allows you to create a new URL and renders the urls_new page 
 app.get("/urls/new", (req, res) => { 
   const templateVars = { 
-   user_id: req.cookies.user_id
+   user_id: req.session.user_id
   };
 
   // checking if you're logged in or not
-  if (req.cookies.user_id) {
+  if (req.session.user_id) {
    return res.render("urls_new", templateVars);
   } else {
    res.redirect("/login");
@@ -100,10 +107,10 @@ app.get("/urls/new", (req, res) => {
 
 
 app.get("/urls/:shortURL", (req, res) => { 
- if (!req.cookies.user_id) {
+ if (!req.session.user_id) {
   return res.status(400).send("Uh-oh! URL does not exist!")
  }
- const filteredURLS = urlsForUser(req.cookies.user_id.id, urlDatabase);
+ const filteredURLS = urlsForUser(req.session.user_id.id, urlDatabase);
 
   // if for the specific id in filteredURLS does not exist, throw error
 
@@ -114,7 +121,7 @@ app.get("/urls/:shortURL", (req, res) => {
   const templateVars = { 
    shortURL: req.params.shortURL, 
    longURL: urlDatabase[req.params.shortURL].longURL,
-   user_id: req.cookies.user_id
+   user_id: req.session.user_id
   };
 
   res.render("urls_show", templateVars);
@@ -124,12 +131,12 @@ app.get("/urls/:shortURL", (req, res) => {
 
 app.get("/register", (req,res) => { 
 
-  if (req.cookies.user_id) {
+  if (req.session.user_id) {
    res.redirect("/urls")
   };
 
   const templateVars = { 
-   user_id: req.cookies.user_id
+   user_id: req.session.user_id
   };
 
   res.render("register", templateVars)
@@ -137,12 +144,12 @@ app.get("/register", (req,res) => {
 
 app.get("/login", (req,res) => { 
 
-  if(req.cookies.user_id) {
+  if(req.session.user_id) {
    res.redirect ("/urls")
   };
 
   const templateVars = { 
-   user_id: req.cookies.user_id
+   user_id: req.session.user_id
   };
   res.render("login", templateVars)
 })
@@ -152,7 +159,7 @@ app.get("/login", (req,res) => {
 
 // for creating a new URL
 app.post("/urls", (req, res) => { // CHANGED
-  if (!req.cookies.user_id) {
+  if (!req.session.user_id) {
    res.send("Uh-oh! You are not logged in.")
 
   } else {
@@ -161,7 +168,7 @@ app.post("/urls", (req, res) => { // CHANGED
   
   urlDatabase[shortURL] = {
    longURL: req.body.longURL,
-   userID: req.cookies.user_id.id
+   userID: req.session.user_id.id
   };
 
   res.redirect("urls/");    
@@ -180,11 +187,11 @@ app.post("/urls/:shortURL/delete", (req, res) => { // ** MAY STILL NEED TO TEST 
  app.post("/urls/:id", (req, res) => { 
 
   //if cookies doesnt exist, throw error
-  if (!req.cookies.user_id) {
+  if (!req.session.user_id) {
    res.status(400).send("Uh-oh! Please log in.")
   };
 
-  const filteredURLS = urlsForUser(req.cookies.user_id.id, urlDatabase); 
+  const filteredURLS = urlsForUser(req.session.user_id.id, urlDatabase); 
   
   // if for the specific id in filteredURLS does not exist, throw error
   if (!filteredURLS[req.params.id]) {
@@ -193,7 +200,7 @@ app.post("/urls/:shortURL/delete", (req, res) => { // ** MAY STILL NEED TO TEST 
 
   let id = req.params.id;
   let longURL = req.body.longURL;
-  const userID = req.cookies.user_id.id
+  const userID = req.session.user_id.id
   urlDatabase[id] = {longURL, userID};
 
   res.redirect(`/urls`);
@@ -218,7 +225,7 @@ app.post("/login", (req, res) => {
   };
 
   if (result) {
-     res.cookie('user_id', currentUser);
+     req.session.user_id = currentUser;
      res.redirect(`/urls`);
   } else {
    return res.status(403).send("Uh-oh! User doesn't exist!");
@@ -227,7 +234,7 @@ app.post("/login", (req, res) => {
 
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id');
+  req.session = null;
   res.redirect(`/login`);
 });
 
@@ -265,7 +272,7 @@ app.post("/register", (req, res) => {
   password: hashedPassword
 }
 
-  res.cookie('user_id', users[RandomUserID]); 
+  req.session.user_id = users[RandomUserID]; 
   res.redirect("/urls");
 });
 
