@@ -6,9 +6,8 @@ const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 const bodyParser = require("body-parser");
 const cookieSession = require('cookie-session');
-const { generateRandomString } = require('./helpers');
-const { urlsForUser } = require('./helpers');
-const { getUserByEmail } = require('./helpers');
+const { generateRandomString, urlsForUser, getUserByEmail } = require('./helpers');
+const { urlDatabase, users } = require('./databases');
 
 app.set("view engine", "ejs");
 app.use(cookieParser());
@@ -17,21 +16,6 @@ app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2', 'key3'],
 }));
-
-// ------------------- DATABASES -------------------------
-const urlDatabase = {
-  b6UTxQ: {
-    longURL: "https://www.tsn.ca",
-    userID: "aJ48lW"
-  },
-  i3BoGr: {
-    longURL: "https://www.google.ca",
-    userID: "userRandomID"
-  }
-};
-
-const users = {
-};
 
 // ------------------- GET -------------------------
 
@@ -60,7 +44,6 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
-
 // page will bring you to the appropriate website with the short url
 app.get("/u/:shortURL", (req, res) => {
   if (!urlDatabase[req.params.shortURL]) {
@@ -69,7 +52,6 @@ app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
-
 
 // this allows you to create a new URL and renders the urls_new page
 app.get("/urls/new", (req, res) => {
@@ -84,7 +66,6 @@ app.get("/urls/new", (req, res) => {
     res.redirect("/login");
   }
 });
-
 
 app.get("/urls/:shortURL", (req, res) => {
   if (!req.session.user_id) {
@@ -107,7 +88,6 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-
 // register page
 app.get("/register", (req,res) => {
   if (req.session.user_id) {
@@ -121,7 +101,6 @@ app.get("/register", (req,res) => {
   res.render("register", templateVars);
 });
 
-
 app.get("/login", (req,res) => {
   if (req.session.user_id) {
     res.redirect("/urls");
@@ -133,17 +112,16 @@ app.get("/login", (req,res) => {
   res.render("login", templateVars);
 });
 
-
 // ------------------- POST -------------------------
 
 // for creating a new URL
-app.post("/urls", (req, res) => { // CHANGED
+app.post("/urls", (req, res) => { 
   if (!req.session.user_id) {
     res.send("Uh-oh! You are not logged in.");
 
   } else {
 
-    let shortURL = generateRandomString();
+    let shortURL = generateRandomString(6);
   
     urlDatabase[shortURL] = {
       longURL: req.body.longURL,
@@ -155,19 +133,24 @@ app.post("/urls", (req, res) => { // CHANGED
   }
 });
 
-
 // deleting url
 app.post("/urls/:shortURL/delete", (req, res) => {
+  if (!req.session.user_id) {
+    res.send("Uh-oh! You can't delete that.");
+  
+  } else {
+
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
-});
 
+  }
+});
 
 // for editing the URL
 app.post("/urls/:id", (req, res) => {
   //if cookies doesnt exist, throw error
   if (!req.session.user_id) {
-    res.status(400).send("Uh-oh! Please log in.");
+    return res.status(400).send("Uh-oh! Please log in.");
   }
 
   const filteredURLS = urlsForUser(req.session.user_id.id, urlDatabase);
@@ -184,7 +167,6 @@ app.post("/urls/:id", (req, res) => {
 
   res.redirect(`/urls`);
 });
-
 
 // for logging in
 app.post("/login", (req, res) => {
@@ -211,17 +193,15 @@ app.post("/login", (req, res) => {
   }
 });
 
-
 // for logging out
 app.post("/logout", (req, res) => {
   req.session = null;
   res.redirect(`/urls`);
 });
 
-
 // for registering
 app.post("/register", (req, res) => {
-  const RandomUserID = generateRandomString();
+  const RandomUserID = generateRandomString(6);
 
   // checking if the email and password are empty strings
   if (req.body.email === "" || req.body.password === "") {
@@ -246,7 +226,6 @@ app.post("/register", (req, res) => {
   req.session.user_id = users[RandomUserID];
   res.redirect("/urls");
 });
-
 
 // --------
 app.listen(PORT, () => {

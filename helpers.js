@@ -1,5 +1,5 @@
-const generateRandomString = function() {
-  let r = (Math.random() + 1).toString(36).substring(6);
+const generateRandomString = function(length) {
+  let r = (Math.random() + 1).toString(36).substring(length);
   return r;
 };
 
@@ -20,7 +20,6 @@ const getUserByEmail = function(email, users) {
       return users[user].id;
     }
   }
-  return undefined;
 };
 
 module.exports = {generateRandomString, urlsForUser, getUserByEmail};
